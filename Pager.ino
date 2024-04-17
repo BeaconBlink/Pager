@@ -25,26 +25,43 @@ void scrollAllLines() {
 
 void scanAndShow() {
   static RepeatReaction *scanResultReaction = nullptr;
+  static int failedScanCount = 0;
+  const int maxFailedScans = 3;
+
   if (scanResultReaction != nullptr) {
     return;
   }
 
   Serial.println("scanResultReaction initialized");
   lines[1].setText("Scanning...");
+  WiFi.scanDelete();
   WiFi.scanNetworks(true);
 
   scanResultReaction = app.onRepeat(1000, [&]() {
     Serial.println("scanResultReaction is running");
     int scanResult = WiFi.scanComplete();
-    if (scanResult == WIFI_SCAN_RUNNING || scanResult == WIFI_SCAN_FAILED) {
-      return;
+
+    switch (scanResult) {
+      case WIFI_SCAN_FAILED:
+        failedScanCount++;
+        if (failedScanCount > maxFailedScans) {
+          lines[1].setText("Scan Failed");
+          lines[2].setText("");
+          Serial.println("scanResultReaction scan failed");
+          goto removeReaction;
+        }
+        [[fallthrough]];
+      case WIFI_SCAN_RUNNING:
+        return;
     }
 
     lines[1].setText("Scan Done");
-    lines[2].setText((String)scanResult + " networks");
-    WiFi.scanDelete();
+    lines[2].setText(String(scanResult) + " networks");
+
+removeReaction:
     app.remove(scanResultReaction);
     scanResultReaction = nullptr;
+    failedScanCount = 0;
     Serial.println("scanResultReaction removed");
   });
 }
