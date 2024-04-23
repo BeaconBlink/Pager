@@ -24,7 +24,7 @@ void scrollAllLines() {
 }
 
 void scanAndShow() {
-  static RepeatReaction *scanResultReaction = nullptr;
+  static RepeatReaction* scanResultReaction = nullptr;
   static int failedScanCount = 0;
   const int maxFailedScans = 3;
 
