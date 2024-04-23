@@ -2,6 +2,7 @@
 #include <ReactESP.h>
 #include <WiFi.h>
 #include "ScrollingLine.h"
+#include "Settings.h"
 
 #define BACKLIGHT_PIN 45
 #define LINES_SIZE 3
@@ -9,6 +10,10 @@
 using namespace reactesp;
 
 ReactESP app;
+
+const char* ssid = SSID;
+const char* password = PASSWORD;
+const char* serverUrl = SERVER_URL;
 
 TFT_eSPI tft = TFT_eSPI();
 ScrollingLine lines[LINES_SIZE] = {

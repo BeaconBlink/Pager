@@ -1,2 +1,3 @@
-#define SSID ssid
-#define PASSWORD password
+#define SSID "ssid"
+#define PASSWORD "password"
+#define SERVER_URL "http://op:port/path"
