@@ -11,9 +11,9 @@ using namespace reactesp;
 
 ReactESP app;
 
-const char* ssid = SSID;
-const char* password = PASSWORD;
-const char* serverUrl = SERVER_URL;
+const char* ssid = DEPLOYMENT_SSID;
+const char* password = DEPLOYMENT_PASSWORD;
+const char* serverUrl = DEPLOYMENT_SERVER_URL;
 
 TFT_eSPI tft = TFT_eSPI();
 ScrollingLine lines[LINES_SIZE] = {
