@@ -113,47 +113,24 @@ int pingServer() {
   return httpResponseCode;
 }
 
-void connect() {
-  static RepeatReaction* wifiConnectionReaction = nullptr;
-  static int failedConnectionCount = 0;
-  const int maxFailedConnections = 5;
+void onWiFiStationConnected(WiFiEvent_t event, WiFiEventInfo_t info) {
+  Serial.println("Connected to WiFi");
+  lines[0].setText("Online");
+  lines[0].setTextColor(TFT_GREEN);
+}
 
-  if (wifiConnectionReaction != nullptr) {
-    return;
-  }
+void onWiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info) {
+  Serial.println("Disonnected from WiFi");
+  lines[0].setText("Offline");
+  lines[0].setTextColor(TFT_RED);
+  // WiFi.reconnect();
+}
 
-  Serial.println("wifiConnectionReaction initialized");
-  lines[1].setText("Connecting...");
-  WiFi.begin(ssid, password);
-
-  wifiConnectionReaction = app.onRepeat(1000, [&]() {
-    Serial.println("wifiConnectionReaction is running");
-
-    if (WiFi.status() != WL_CONNECTED) {
-      failedConnectionCount++;
-      if (failedConnectionCount > maxFailedConnections) {
-        lines[1].setText("Connection failed");
-        goto removeReaction;
-      }
-      return;
-    }
-
-    lines[1].setText("Connected");
-    pingServer();
-
-    // TODO: do things according to server response
-    // for now just initialize a scan :v
-    app.onDelay(0, scanAndShow);
-
-removeReaction:
-    app.remove(wifiConnectionReaction);
-    wifiConnectionReaction = nullptr;
-    failedConnectionCount = 0;
-    Serial.println("wifiConnectionReaction removed");
-    lines[1].setText("Disconnected");
-
+void checkConnectionAndReconnect() {
+  if (WiFi.status() != WL_CONNECTED) {
     WiFi.disconnect();
-  });
+    WiFi.reconnect();
+  }
 }
 
 void setup() {
@@ -161,20 +138,24 @@ void setup() {
   pinMode(BACKLIGHT_PIN, OUTPUT);
   digitalWrite(BACKLIGHT_PIN, HIGH);
 
-  WiFi.mode(WIFI_STA);
-  WiFi.disconnect();
-
   tft.init();
   tft.setRotation(3);
   tft.fillScreen(TFT_BLACK);
 
-  lines[0].setText("Initialized");
+  lines[0].setText("Idle");
+  lines[0].setTextColor(TFT_YELLOW);
   lines[1].setText("");
   lines[2].setText("");
 
   app.onRepeat(20, scrollAllLines);
-  app.onDelay(0, connect);
-  app.onRepeat(30000, connect);
+  app.onRepeat(30000, checkConnectionAndReconnect);
+
+  WiFi.mode(WIFI_STA);
+  WiFi.disconnect();
+  WiFi.onEvent(onWiFiStationConnected, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_CONNECTED);
+  WiFi.onEvent(onWiFiStationDisconnected, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
+
+  WiFi.begin(ssid, password);
 }
 
 void loop() {
