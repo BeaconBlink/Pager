@@ -21,7 +21,7 @@ TFT_eSPI tft = TFT_eSPI();
 ScrollingLine lines[LINES_SIZE] = {
   ScrollingLine(&tft, 0, TFT_GREEN, TFT_BLACK, 2),
   ScrollingLine(&tft, lines[0].getBottomY() + 8, TFT_WHITE, TFT_BLACK, 2),
-  ScrollingLine(&tft, lines[1].getBottomY() + 8, TFT_RED, TFT_BLACK, 2),
+  ScrollingLine(&tft, lines[1].getBottomY() + 8, TFT_RED, TFT_BLACK, 4),
 };
 
 void scrollAllLines() {
@@ -139,7 +139,7 @@ void setup() {
   digitalWrite(BACKLIGHT_PIN, HIGH);
 
   tft.init();
-  tft.setRotation(3);
+  tft.setRotation(1);
   tft.fillScreen(TFT_BLACK);
 
   lines[0].setText("Idle");
