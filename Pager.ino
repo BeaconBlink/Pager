@@ -30,17 +30,17 @@ void scrollAllLines() {
   }
 }
 
-void scanAndShow() {
+void scanNetworks() {
   static RepeatReaction* scanResultReaction = nullptr;
   static int failedScanCount = 0;
-  const int maxFailedScans = 3;
+  const int maxFailedScans = 5;
 
   if (scanResultReaction != nullptr) {
     return;
   }
 
   Serial.println("scanResultReaction initialized");
-  lines[1].setText("Scanning...");
+  lines[1].setText("Scanning");
   WiFi.scanDelete();
   WiFi.scanNetworks(true);
 
@@ -52,7 +52,7 @@ void scanAndShow() {
       case WIFI_SCAN_FAILED:
         failedScanCount++;
         if (failedScanCount > maxFailedScans) {
-          lines[1].setText("Scan Failed");
+          lines[1].setText("Scan failed");
           lines[2].setText("");
           Serial.println("scanResultReaction scan failed");
           goto removeReaction;
@@ -61,9 +61,9 @@ void scanAndShow() {
       case WIFI_SCAN_RUNNING:
         return;
     }
-
-    lines[1].setText("Scan Done");
-    lines[2].setText(String(scanResult) + " networks");
+    Serial.println("scanResultReaction scan finished");
+    lines[1].setText("Scan finished");
+    pingServer();
 
 removeReaction:
     app.remove(scanResultReaction);
@@ -110,6 +110,7 @@ int pingServer() {
   }
   http.end();
 
+  lines[1].setText("Scan sent (" + String(httpResponseCode) + ")");
   return httpResponseCode;
 }
 
@@ -128,7 +129,6 @@ void onWiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info) {
 
 void checkConnectionAndReconnect() {
   if (WiFi.status() != WL_CONNECTED) {
-    WiFi.disconnect();
     WiFi.reconnect();
   }
 }
@@ -146,6 +146,7 @@ void setup() {
   lines[0].setTextColor(TFT_YELLOW);
   lines[1].setText("");
   lines[2].setText("");
+  scrollAllLines();
 
   app.onRepeat(20, scrollAllLines);
   app.onRepeat(30000, checkConnectionAndReconnect);
@@ -156,6 +157,7 @@ void setup() {
   WiFi.onEvent(onWiFiStationDisconnected, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
 
   WiFi.begin(ssid, password);
+  app.onRepeat(30000, scanNetworks);
 }
 
 void loop() {
