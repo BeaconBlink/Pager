@@ -1,7 +1,10 @@
 #include <TFT_eSPI.h>
 #include <ReactESP.h>
 #include <WiFi.h>
+#include <HTTPClient.h>
+#include <ArduinoJson.h>
 #include "ScrollingLine.h"
+#include "Settings.h"
 
 #define BACKLIGHT_PIN 45
 #define LINES_SIZE 3
@@ -10,11 +13,15 @@ using namespace reactesp;
 
 ReactESP app;
 
+const char* ssid = DEPLOYMENT_SSID;
+const char* password = DEPLOYMENT_PASSWORD;
+const char* serverUrl = DEPLOYMENT_SERVER_URL;
+
 TFT_eSPI tft = TFT_eSPI();
 ScrollingLine lines[LINES_SIZE] = {
   ScrollingLine(&tft, 0, TFT_GREEN, TFT_BLACK, 2),
   ScrollingLine(&tft, lines[0].getBottomY() + 8, TFT_WHITE, TFT_BLACK, 2),
-  ScrollingLine(&tft, lines[1].getBottomY() + 8, TFT_RED, TFT_BLACK, 2),
+  ScrollingLine(&tft, lines[1].getBottomY() + 8, TFT_RED, TFT_BLACK, 4),
 };
 
 void scrollAllLines() {
@@ -23,17 +30,17 @@ void scrollAllLines() {
   }
 }
 
-void scanAndShow() {
-  static RepeatReaction *scanResultReaction = nullptr;
+void scanNetworks() {
+  static RepeatReaction* scanResultReaction = nullptr;
   static int failedScanCount = 0;
-  const int maxFailedScans = 3;
+  const int maxFailedScans = 5;
 
   if (scanResultReaction != nullptr) {
     return;
   }
 
   Serial.println("scanResultReaction initialized");
-  lines[1].setText("Scanning...");
+  lines[1].setText("Scanning");
   WiFi.scanDelete();
   WiFi.scanNetworks(true);
 
@@ -45,7 +52,7 @@ void scanAndShow() {
       case WIFI_SCAN_FAILED:
         failedScanCount++;
         if (failedScanCount > maxFailedScans) {
-          lines[1].setText("Scan Failed");
+          lines[1].setText("Scan failed");
           lines[2].setText("");
           Serial.println("scanResultReaction scan failed");
           goto removeReaction;
@@ -54,9 +61,9 @@ void scanAndShow() {
       case WIFI_SCAN_RUNNING:
         return;
     }
-
-    lines[1].setText("Scan Done");
-    lines[2].setText(String(scanResult) + " networks");
+    Serial.println("scanResultReaction scan finished");
+    lines[1].setText("Scan finished");
+    pingServer();
 
 removeReaction:
     app.remove(scanResultReaction);
@@ -66,26 +73,91 @@ removeReaction:
   });
 }
 
+JsonDocument jsonDocument;
+String serializedJsonDocument;
+int pingServer() {
+  HTTPClient http;
+  http.begin(serverUrl);
+  http.addHeader("Content-Type", "application/json");
+
+  jsonDocument.clear();
+  jsonDocument["mac_address"] = WiFi.macAddress();
+  JsonArray scanResults = jsonDocument.createNestedArray("scan_results");
+
+  int n = WiFi.scanNetworks();
+  for (int i = 0; i < n; ++i) {
+    JsonObject scanResult = scanResults.createNestedObject();
+    scanResult["ssid"] = WiFi.SSID(i);
+    scanResult["rssi"] = WiFi.RSSI(i);
+    scanResult["bssid"] = WiFi.BSSIDstr(i);
+  }
+
+  serializeJson(jsonDocument, serializedJsonDocument);
+  Serial.print("HTTP POST body: ");
+  Serial.println(serializedJsonDocument);
+
+  int httpResponseCode = http.POST(serializedJsonDocument);
+  if (httpResponseCode > 0) {
+    Serial.print("HTTP Response ");
+    Serial.print(httpResponseCode);
+    Serial.print(": ");
+    serializedJsonDocument = http.getString();
+    Serial.println(serializedJsonDocument);
+    deserializeJson(jsonDocument, serializedJsonDocument);
+  } else {
+    Serial.print("Error code: ");
+    Serial.println(httpResponseCode);
+  }
+  http.end();
+
+  lines[1].setText("Scan sent (" + String(httpResponseCode) + ")");
+  return httpResponseCode;
+}
+
+void onWiFiStationConnected(WiFiEvent_t event, WiFiEventInfo_t info) {
+  Serial.println("Connected to WiFi");
+  lines[0].setText("Online");
+  lines[0].setTextColor(TFT_GREEN);
+}
+
+void onWiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info) {
+  Serial.println("Disonnected from WiFi");
+  lines[0].setText("Offline");
+  lines[0].setTextColor(TFT_RED);
+  // WiFi.reconnect();
+}
+
+void checkConnectionAndReconnect() {
+  if (WiFi.status() != WL_CONNECTED) {
+    WiFi.reconnect();
+  }
+}
 
 void setup() {
   Serial.begin(115200);
   pinMode(BACKLIGHT_PIN, OUTPUT);
   digitalWrite(BACKLIGHT_PIN, HIGH);
 
-  WiFi.mode(WIFI_STA);
-  WiFi.disconnect();
-
   tft.init();
-  tft.setRotation(3);
+  tft.setRotation(1);
   tft.fillScreen(TFT_BLACK);
 
-  lines[0].setText("Initialized");
+  lines[0].setText("Idle");
+  lines[0].setTextColor(TFT_YELLOW);
   lines[1].setText("");
   lines[2].setText("");
+  scrollAllLines();
 
   app.onRepeat(20, scrollAllLines);
-  app.onDelay(0, scanAndShow);
-  app.onRepeat(30000, scanAndShow);
+  app.onRepeat(30000, checkConnectionAndReconnect);
+
+  WiFi.mode(WIFI_STA);
+  WiFi.disconnect();
+  WiFi.onEvent(onWiFiStationConnected, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_CONNECTED);
+  WiFi.onEvent(onWiFiStationDisconnected, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
+
+  WiFi.begin(ssid, password);
+  app.onRepeat(30000, scanNetworks);
 }
 
 void loop() {
