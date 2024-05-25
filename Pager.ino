@@ -63,6 +63,9 @@ void scanNetworks() {
     }
     Serial.println("scanResultReaction scan finished");
     lines[1].setText("Scan finished");
+    lines[2].setText("");
+    scrollAllLines();
+
     pingServer();
 
 removeReaction:
@@ -104,13 +107,32 @@ int pingServer() {
     serializedJsonDocument = http.getString();
     Serial.println(serializedJsonDocument);
     deserializeJson(jsonDocument, serializedJsonDocument);
+
+    // TODO: make a function for this or sth
+    JsonArray tasks = jsonDocument["tasks"];
+    for (JsonObject task : tasks) {
+      const char* action = task["action"];
+      JsonArray args = task["args"];
+
+      if (strcmp(action, "display") == 0) {
+        const char* text = args[0];
+        int line = args[1];
+        lines[line].setText(String(text));
+
+        uint16_t textColor = args[2];
+        lines[line].setTextColor(textColor);
+
+        uint16_t bgColor = args[3];
+        lines[line].setBgColor(bgColor);
+      }
+    }
   } else {
     Serial.print("Error code: ");
     Serial.println(httpResponseCode);
   }
   http.end();
 
-  lines[1].setText("Scan sent (" + String(httpResponseCode) + ")");
+  lines[1].setText("HTTP (" + String(httpResponseCode) + ")");
   return httpResponseCode;
 }
 
