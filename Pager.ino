@@ -79,6 +79,8 @@ removeReaction:
 JsonDocument jsonDocument;
 String serializedJsonDocument;
 int pingServer() {
+  Serial.println("pingServer started");
+
   HTTPClient http;
   http.begin(serverUrl);
   http.addHeader("Content-Type", "application/json");
@@ -126,6 +128,8 @@ int pingServer() {
         lines[line].setBgColor(bgColor);
       }
     }
+
+    Serial.println("pingServer finished running actions");
   } else {
     Serial.print("Error code: ");
     Serial.println(httpResponseCode);
