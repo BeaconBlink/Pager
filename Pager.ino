@@ -24,6 +24,16 @@ ScrollingLine lines[LINES_SIZE] = {
   ScrollingLine(&tft, lines[1].getBottomY() + 8, TFT_RED, TFT_BLACK, 4),
 };
 
+void scrollAllLines();
+void scanNetworks();
+int pingServer();
+void onWiFiStationConnected(WiFiEvent_t event, WiFiEventInfo_t info);
+void onWiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info);
+void checkConnectionAndReconnect();
+double batteryVoltage();
+void setup();
+void loop();
+
 void scrollAllLines() {
   for (int i = 0; i < LINES_SIZE; i++) {
     lines[i].scrollText();
@@ -87,6 +97,7 @@ int pingServer() {
 
   jsonDocument.clear();
   jsonDocument["mac_address"] = WiFi.macAddress();
+  jsonDocument["battery_voltage"] = batteryVoltage();
   JsonArray scanResults = jsonDocument.createNestedArray("scan_results");
 
   int n = WiFi.scanNetworks();
@@ -159,8 +170,26 @@ void checkConnectionAndReconnect() {
   }
 }
 
+double batteryVoltage() {
+  const uint8_t ADC_PIN = 1;
+  const double R1 = 200000.0;
+  const double R2 = 100000.0;
+  const double ADC_MAX = 4095.0;
+  const double V_REF = 3.3;
+
+  const uint16_t adcValue = analogRead(ADC_PIN);
+  const double voltage = (adcValue / ADC_MAX) * V_REF;
+  const double batteryVoltage = voltage * (R1 + R2) / R2;
+
+  Serial.println("ADC value: " + String(adcValue) + ", Voltage: " + String(batteryVoltage) + "V");
+
+  return batteryVoltage;
+}
+
 void setup() {
   Serial.begin(115200);
+  analogReadResolution(12);
+
   pinMode(BACKLIGHT_PIN, OUTPUT);
   digitalWrite(BACKLIGHT_PIN, HIGH);
 
