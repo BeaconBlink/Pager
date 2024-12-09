@@ -54,7 +54,7 @@ void scrollAllLines() {
 void scanNetworks() {
   static RepeatReaction* scanResultReaction = nullptr;
   static uint8_t failedScanCount = 0;
-  const uint8_t maxFailedScans = 3;
+  const uint8_t maxFailedScans = 5;
 
   if (scanResultReaction != nullptr) {
     return;
