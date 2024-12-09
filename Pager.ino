@@ -11,6 +11,14 @@
 #define BACKLIGHT_PIN 45
 #define LINES_SIZE 3
 
+#define DEBUG 0
+
+#if DEBUG
+    #define DEBUG_FUNCTION(func) func
+#else
+    #define DEBUG_FUNCTION(func) ((void)0)
+#endif
+
 using namespace reactesp;
 
 // GLOBAL VARIABLES
@@ -60,13 +68,13 @@ void scanNetworks() {
     return;
   }
 
-  Serial.println("scanResultReaction initialized");
+  DEBUG_FUNCTION(Serial.println("scanResultReaction initialized"));
   lines[1].setText("Scanning");
   WiFi.scanDelete();
   WiFi.scanNetworks(true);
 
   scanResultReaction = app.onRepeat(1000, [&]() {
-    Serial.println("scanResultReaction is running");
+    DEBUG_FUNCTION(Serial.println("scanResultReaction is running"));
     int16_t scanResult = WiFi.scanComplete();
 
     switch (scanResult) {
@@ -75,14 +83,14 @@ void scanNetworks() {
         if (failedScanCount > maxFailedScans) {
           lines[1].setText("Scan failed");
           lines[2].setText("");
-          Serial.println("scanResultReaction scan failed");
+          DEBUG_FUNCTION(Serial.println("scanResultReaction scan failed"));
           goto removeReaction;
         }
         [[fallthrough]];
       case WIFI_SCAN_RUNNING:
         return;
     }
-    Serial.println("scanResultReaction scan finished");
+    DEBUG_FUNCTION(Serial.println("scanResultReaction scan finished"));
     lines[1].setText("Scan finished");
     lines[2].setText("");
     scrollAllLines();
@@ -93,12 +101,12 @@ removeReaction:
     app.remove(scanResultReaction);
     scanResultReaction = nullptr;
     failedScanCount = 0;
-    Serial.println("scanResultReaction removed");
+    DEBUG_FUNCTION(Serial.println("scanResultReaction removed"));
   });
 }
 
 int pingServer() {
-  Serial.println("pingServer started");
+  DEBUG_FUNCTION(Serial.println("pingServer started"));
 
   HTTPClient http;
   http.begin(serverUrl);
@@ -118,16 +126,16 @@ int pingServer() {
   }
 
   serializeJson(jsonDocument, serializedJsonDocument);
-  Serial.print("HTTP POST body: ");
-  Serial.println(serializedJsonDocument);
+  DEBUG_FUNCTION(Serial.print("HTTP POST body: "));
+  DEBUG_FUNCTION(Serial.println(serializedJsonDocument));
 
   int httpResponseCode = http.POST(serializedJsonDocument);
   if (httpResponseCode > 0) {
-    Serial.print("HTTP Response ");
-    Serial.print(httpResponseCode);
-    Serial.print(": ");
+    DEBUG_FUNCTION(Serial.print("HTTP Response "));
+    DEBUG_FUNCTION(Serial.print(httpResponseCode));
+    DEBUG_FUNCTION(Serial.print(": "));
     serializedJsonDocument = http.getString();
-    Serial.println(serializedJsonDocument);
+    DEBUG_FUNCTION(Serial.println(serializedJsonDocument));
     deserializeJson(jsonDocument, serializedJsonDocument);
 
     // TODO: make a function for this or sth
@@ -158,10 +166,10 @@ int pingServer() {
       }
     }
 
-    Serial.println("pingServer finished running actions");
+    DEBUG_FUNCTION(Serial.println("pingServer finished running actions"));
   } else {
-    Serial.print("Error code: ");
-    Serial.println(httpResponseCode);
+    DEBUG_FUNCTION(Serial.print("Error code: "));
+    DEBUG_FUNCTION(Serial.println(httpResponseCode));
   }
   http.end();
 
@@ -170,13 +178,13 @@ int pingServer() {
 }
 
 void onWiFiStationConnected(WiFiEvent_t event, WiFiEventInfo_t info) {
-  Serial.println("Connected to WiFi");
+  DEBUG_FUNCTION(Serial.println("Connected to WiFi"));
   lines[0].setText("Online");
   lines[0].setTextColor(TFT_GREEN);
 }
 
 void onWiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info) {
-  Serial.println("Disonnected from WiFi");
+  DEBUG_FUNCTION(Serial.println("Disonnected from WiFi"));
   lines[0].setText("Offline");
   lines[0].setTextColor(TFT_RED);
 }
@@ -190,6 +198,8 @@ void checkConnectionAndReconnect() {
 double batteryVoltage() {
   const uint8_t numReadings = 10;
 
+  DEBUG_FUNCTION(Serial.println("Battery voltage measurements initialized"));
+
   uint32_t totalMilliVolts = 0;
   for (uint8_t i = 0; i < numReadings; i++) {
     uint32_t adcMilliVolts = analogReadMilliVolts(ADC_PIN);
@@ -201,12 +211,12 @@ double batteryVoltage() {
   uint32_t averageBatteryMilliVolts = averageMilliVolts * 3;
   double averageBatteryVolatage = averageBatteryMilliVolts / 1000.0;
 
-  Serial.println("Battery: " + String(averageBatteryVolatage) + "V");
+  DEBUG_FUNCTION(Serial.println("Battery: " + String(averageBatteryVolatage) + "V"));
   return averageBatteryVolatage;
 }
 
 void setup() {
-  Serial.begin(115200);
+  DEBUG_FUNCTION(Serial.begin(115200));
   analogReadResolution(12);
 
   pinMode(BUZZER_PIN, OUTPUT);
