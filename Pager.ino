@@ -67,7 +67,9 @@ void scanNetworks() {
   }
 
   DEBUG_FUNCTION(Serial.println("scanResultReaction initialized"));
-  lines[1].setText("Scanning");
+  DEBUG_FUNCTION(lines[1].setText("Scanning"));
+  DEBUG_FUNCTION(scrollAllLines());
+
   WiFi.scanDelete();
   WiFi.scanNetworks(true);
 
@@ -79,7 +81,7 @@ void scanNetworks() {
       case WIFI_SCAN_FAILED:
         failedScanCount++;
         if (failedScanCount > maxFailedScans) {
-          lines[1].setText("Scan failed");
+          DEBUG_FUNCTION(lines[1].setText("Scan failed"));
           lines[2].setText("");
           DEBUG_FUNCTION(Serial.println("scanResultReaction scan failed"));
           goto removeReaction;
@@ -89,7 +91,8 @@ void scanNetworks() {
         return;
     }
     DEBUG_FUNCTION(Serial.println("scanResultReaction scan finished"));
-    lines[1].setText("Scan finished");
+    DEBUG_FUNCTION(lines[1].setText("Scan finished"));
+    DEBUG_FUNCTION(scrollAllLines());
     lines[2].setText("");
     scrollAllLines();
 
@@ -170,7 +173,12 @@ int pingServer() {
   }
   http.end();
 
-  lines[1].setText("HTTP (" + String(httpResponseCode) + ")");
+  if (httpResponseCode != 200) {
+    lines[0].setTextColor(TFT_YELLOW);
+  }
+
+  DEBUG_FUNCTION(lines[1].setText("HTTP: " + String(httpResponseCode)));
+  DEBUG_FUNCTION(scrollAllLines());
   return httpResponseCode;
 }
 
@@ -209,6 +217,8 @@ double batteryVoltage() {
   uint32_t averageBatteryMilliVolts = averageMilliVolts * 3;
   double averageBatteryVolatage = averageBatteryMilliVolts / 1000.0;
 
+  DEBUG_FUNCTION(lines[1].setText("BAT: "+ String(averageBatteryVolatage) + "V"));
+  DEBUG_FUNCTION(scrollAllLines());
   DEBUG_FUNCTION(Serial.println("Battery: " + String(averageBatteryVolatage) + "V"));
   return averageBatteryVolatage;
 }
