@@ -13,8 +13,10 @@
 
 #if DEBUG
 #define DEBUG_FUNCTION(func) func
+#define PROD_FUNCTION(func) ((void)0)
 #else
 #define DEBUG_FUNCTION(func) ((void)0)
+#define PROD_FUNCTION(func) func
 #endif
 
 using namespace reactesp;
@@ -37,6 +39,9 @@ ScrollingLine lines[LINES_SIZE] = {
 JsonDocument jsonDocument;
 String serializedJsonDocument;
 
+double batteryVoltage = 4.2;
+uint8_t batteryPercentage = 100;
+
 // FUNCTION DECLARATIONS
 
 void scrollAllLines();
@@ -45,7 +50,8 @@ int pingServer();
 void onWiFiStationConnected(WiFiEvent_t event, WiFiEventInfo_t info);
 void onWiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info);
 void checkConnectionAndReconnect();
-double batteryVoltage();
+void getBatteryState();
+void showStatus();
 void setup();
 void loop();
 
@@ -115,12 +121,12 @@ int pingServer() {
 
   jsonDocument.clear();
   jsonDocument["mac_address"] = WiFi.macAddress();
-  jsonDocument["battery_voltage"] = batteryVoltage();
-  jsonDocument["battery_percentage"] = 69;
-  JsonArray scanResults = jsonDocument.createNestedArray("scan_results");
+  jsonDocument["battery_voltage"] = batteryVoltage;
+  jsonDocument["battery_percentage"] = batteryPercentage;
 
-  int n = WiFi.scanNetworks();
-  for (int i = 0; i < n; ++i) {
+  JsonArray scanResults = jsonDocument.createNestedArray("scan_results");
+  int16_t n = WiFi.scanNetworks();
+  for (int16_t i = 0; i < n; ++i) {
     JsonObject scanResult = scanResults.createNestedObject();
     scanResult["ssid"] = WiFi.SSID(i);
     scanResult["rssi"] = WiFi.RSSI(i);
@@ -201,8 +207,10 @@ void checkConnectionAndReconnect() {
   }
 }
 
-double batteryVoltage() {
+void getBatteryState() {
   const uint8_t numReadings = 10;
+  const double V_MIN = 3.0;
+  const double V_MAX = 4.2;
 
   DEBUG_FUNCTION(Serial.println("Battery voltage measurements initialized"));
 
@@ -216,12 +224,28 @@ double batteryVoltage() {
 
   uint32_t averageMilliVolts = totalMilliVolts / numReadings;
   uint32_t averageBatteryMilliVolts = averageMilliVolts * 3;
-  double averageBatteryVolatage = averageBatteryMilliVolts / 1000.0;
+  batteryVoltage = averageBatteryMilliVolts / 1000.0;
 
-  DEBUG_FUNCTION(lines[1].setText("BAT: "+ String(averageBatteryVolatage) + "V"));
+  DEBUG_FUNCTION(Serial.println("Battery: " + String(batteryVoltage) + "V"));
+
+  double voltage = batteryVoltage;
+  if (voltage < V_MIN) {
+    voltage = V_MIN;
+  } else if (voltage > V_MAX) {
+    voltage = V_MAX;
+  }
+
+  double percentage = ((voltage - V_MIN) / (V_MAX - V_MIN)) * 100.0;
+  DEBUG_FUNCTION(Serial.println("Battery: " + String(percentage) + "%"));
+
+  batteryPercentage = (uint8_t)percentage;
+
+  DEBUG_FUNCTION(lines[1].setText("BAT: " + +String(batteryVoltage) + "V, " + String(percentage) + "%"));
   DEBUG_FUNCTION(scrollAllLines());
-  DEBUG_FUNCTION(Serial.println("Battery: " + String(averageBatteryVolatage) + "V"));
-  return averageBatteryVolatage;
+}
+
+void showStatus() {
+  PROD_FUNCTION(lines[1].setText(String(batteryPercentage) + "%"));
 }
 
 void setup() {
@@ -245,7 +269,12 @@ void setup() {
   scrollAllLines();
 
   app.onRepeat(20, scrollAllLines);
+  app.onRepeat(10000, getBatteryState);
   app.onRepeat(30000, checkConnectionAndReconnect);
+  PROD_FUNCTION(app.onRepeat(10000, showStatus));
+
+  PROD_FUNCTION(getBatteryState());
+  PROD_FUNCTION(showStatus());
 
   WiFi.mode(WIFI_STA);
   WiFi.disconnect();
