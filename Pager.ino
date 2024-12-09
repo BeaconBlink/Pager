@@ -147,12 +147,11 @@ int pingServer() {
       if (strcmp(action, "display") == 0) {
         const char* text = args[0];
         const uint8_t line = args[1];
-        lines[line].setText(String(text));
-
         const uint16_t textColor = args[2];
-        lines[line].setTextColor(textColor);
-
         const uint16_t bgColor = args[3];
+
+        lines[line].setText(String(text));
+        lines[line].setTextColor(textColor);
         lines[line].setBgColor(bgColor);
       } else if (strcmp(action, "buzz") == 0) {
         const uint8_t buzzCount = args[0];
