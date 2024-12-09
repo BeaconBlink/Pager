@@ -150,13 +150,9 @@ int pingServer() {
         const uint8_t buzzCount = args[0];
         const uint16_t buzzLength = args[1];
 
-        for (uint8_t i = 0; i < buzzCount; ++i) {
-          app.onDelay(i * buzzLength, []() {
-            pinMode(BUZZER_PIN, HIGH);
-          });
-
-          app.onDelay(i * 200 + 100, []() {
-            pinMode(BUZZER_PIN, LOW);
+        for (uint8_t i = 0; i < buzzCount * 2; ++i) {
+          app.onDelay(i * buzzLength + 1000, [i]() {
+            digitalWrite(BUZZER_PIN, i % 2 == 0);
           });
         }
       }
