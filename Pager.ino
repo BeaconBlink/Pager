@@ -6,6 +6,7 @@
 #include "ScrollingLine.h"
 #include "Settings.h"
 
+#define ADC_PIN 1
 #define BUZZER_PIN 5
 #define BACKLIGHT_PIN 45
 #define LINES_SIZE 3
@@ -185,17 +186,13 @@ void checkConnectionAndReconnect() {
 }
 
 double batteryVoltage() {
-  const uint8_t ADC_PIN = 1;
   const double R1 = 200000.0;
   const double R2 = 100000.0;
-  const double ADC_MAX = 4095.0;
-  const double V_REF = 3.3;
 
-  const uint16_t adcValue = analogRead(ADC_PIN);
-  const double voltage = (adcValue / ADC_MAX) * V_REF;
-  const double batteryVoltage = voltage * (R1 + R2) / R2;
+  const uint32_t adcMilliVolts = analogReadMilliVolts(ADC_PIN);
+  const double batteryVoltage = adcMilliVolts / 1000.0 * (R1 + R2) / R2;
 
-  Serial.println("ADC value: " + String(adcValue) + ", Voltage: " + String(batteryVoltage) + "V");
+  Serial.println("Battery: " + String(batteryVoltage) + "V");
 
   return batteryVoltage;
 }
