@@ -188,15 +188,21 @@ void checkConnectionAndReconnect() {
 }
 
 double batteryVoltage() {
-  const double R1 = 200000.0;
-  const double R2 = 100000.0;
+  const uint8_t numReadings = 10;
 
-  const uint32_t adcMilliVolts = analogReadMilliVolts(ADC_PIN);
-  const double batteryVoltage = adcMilliVolts / 1000.0 * (R1 + R2) / R2;
+  uint32_t totalMilliVolts = 0;
+  for (uint8_t i = 0; i < numReadings; i++) {
+    uint32_t adcMilliVolts = analogReadMilliVolts(ADC_PIN);
+    totalMilliVolts += adcMilliVolts;
+    delay(10);
+  }
 
-  Serial.println("Battery: " + String(batteryVoltage) + "V");
+  uint32_t averageMilliVolts = totalMilliVolts / numReadings;
+  uint32_t averageBatteryMilliVolts = averageMilliVolts * 3;
+  double averageBatteryVolatage = averageBatteryMilliVolts / 1000.0;
 
-  return batteryVoltage;
+  Serial.println("Battery: " + String(averageBatteryVolatage) + "V");
+  return averageBatteryVolatage;
 }
 
 void setup() {
