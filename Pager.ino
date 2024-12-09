@@ -6,6 +6,7 @@
 #include "ScrollingLine.h"
 #include "Settings.h"
 
+#define BUZZER_PIN 5
 #define BACKLIGHT_PIN 45
 #define LINES_SIZE 3
 
@@ -137,6 +138,19 @@ int pingServer() {
 
         uint16_t bgColor = args[3];
         lines[line].setBgColor(bgColor);
+      } else if (strcmp(action, "buzz") == 0) {
+        const uint8_t buzzCount = args[0];
+        const uint16_t buzzLength = args[1];
+
+        for (uint8_t i = 0; i < buzzCount; ++i) {
+          app.onDelay(i * buzzLength, []() {
+            pinMode(BUZZER_PIN, HIGH);
+          });
+
+          app.onDelay(i * 200 + 100, []() {
+            pinMode(BUZZER_PIN, LOW);
+          });
+        }
       }
     }
 
@@ -189,6 +203,9 @@ double batteryVoltage() {
 void setup() {
   Serial.begin(115200);
   analogReadResolution(12);
+
+  pinMode(BUZZER_PIN, OUTPUT);
+  digitalWrite(BUZZER_PIN, LOW);
 
   pinMode(BACKLIGHT_PIN, OUTPUT);
   digitalWrite(BACKLIGHT_PIN, HIGH);
