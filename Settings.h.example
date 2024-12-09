@@ -1,3 +1,7 @@
+#define DEBUG 1
+
+#define VOLTAGE_MULTIPLIER 1
+
 #define DEPLOYMENT_SSID "ssid"
 #define DEPLOYMENT_PASSWORD "password"
 #define DEPLOYMENT_SERVER_URL "http://ip:port/path"

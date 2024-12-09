@@ -11,12 +11,10 @@
 #define BACKLIGHT_PIN 45
 #define LINES_SIZE 3
 
-#define DEBUG 0
-
 #if DEBUG
-    #define DEBUG_FUNCTION(func) func
+#define DEBUG_FUNCTION(func) func
 #else
-    #define DEBUG_FUNCTION(func) ((void)0)
+#define DEBUG_FUNCTION(func) ((void)0)
 #endif
 
 using namespace reactesp;
@@ -201,7 +199,8 @@ double batteryVoltage() {
 
   uint32_t totalMilliVolts = 0;
   for (uint8_t i = 0; i < numReadings; i++) {
-    uint32_t adcMilliVolts = analogReadMilliVolts(ADC_PIN);
+    uint32_t adcMilliVolts = analogReadMilliVolts(ADC_PIN) * VOLTAGE_MULTIPLIER;
+    DEBUG_FUNCTION(Serial.println("ADC: " + String(adcMilliVolts) + "mV"));
     totalMilliVolts += adcMilliVolts;
     delay(10);
   }
