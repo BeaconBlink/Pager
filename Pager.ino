@@ -116,6 +116,7 @@ int pingServer() {
   jsonDocument.clear();
   jsonDocument["mac_address"] = WiFi.macAddress();
   jsonDocument["battery_voltage"] = batteryVoltage();
+  jsonDocument["battery_percentage"] = 69;
   JsonArray scanResults = jsonDocument.createNestedArray("scan_results");
 
   int n = WiFi.scanNetworks();
