@@ -13,6 +13,8 @@
 
 using namespace reactesp;
 
+// GLOBAL VARIABLES
+
 ReactESP app;
 
 const char* ssid = DEPLOYMENT_SSID;
@@ -26,6 +28,11 @@ ScrollingLine lines[LINES_SIZE] = {
   ScrollingLine(&tft, lines[1].getBottomY() + 8, TFT_RED, TFT_BLACK, 4),
 };
 
+JsonDocument jsonDocument;
+String serializedJsonDocument;
+
+// FUNCTION DECLARATIONS
+
 void scrollAllLines();
 void scanNetworks();
 int pingServer();
@@ -36,16 +43,18 @@ double batteryVoltage();
 void setup();
 void loop();
 
+// FUNCTION DEFINITIONS
+
 void scrollAllLines() {
-  for (int i = 0; i < LINES_SIZE; i++) {
+  for (uint8_t i = 0; i < LINES_SIZE; i++) {
     lines[i].scrollText();
   }
 }
 
 void scanNetworks() {
   static RepeatReaction* scanResultReaction = nullptr;
-  static int failedScanCount = 0;
-  const int maxFailedScans = 5;
+  static uint8_t failedScanCount = 0;
+  const uint8_t maxFailedScans = 3;
 
   if (scanResultReaction != nullptr) {
     return;
@@ -58,7 +67,7 @@ void scanNetworks() {
 
   scanResultReaction = app.onRepeat(1000, [&]() {
     Serial.println("scanResultReaction is running");
-    int scanResult = WiFi.scanComplete();
+    int16_t scanResult = WiFi.scanComplete();
 
     switch (scanResult) {
       case WIFI_SCAN_FAILED:
@@ -88,8 +97,6 @@ removeReaction:
   });
 }
 
-JsonDocument jsonDocument;
-String serializedJsonDocument;
 int pingServer() {
   Serial.println("pingServer started");
 
@@ -131,13 +138,13 @@ int pingServer() {
 
       if (strcmp(action, "display") == 0) {
         const char* text = args[0];
-        int line = args[1];
+        const uint8_t line = args[1];
         lines[line].setText(String(text));
 
-        uint16_t textColor = args[2];
+        const uint16_t textColor = args[2];
         lines[line].setTextColor(textColor);
 
-        uint16_t bgColor = args[3];
+        const uint16_t bgColor = args[3];
         lines[line].setBgColor(bgColor);
       } else if (strcmp(action, "buzz") == 0) {
         const uint8_t buzzCount = args[0];
@@ -176,7 +183,6 @@ void onWiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info) {
   Serial.println("Disonnected from WiFi");
   lines[0].setText("Offline");
   lines[0].setTextColor(TFT_RED);
-  // WiFi.reconnect();
 }
 
 void checkConnectionAndReconnect() {
