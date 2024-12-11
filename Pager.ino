@@ -245,7 +245,7 @@ void getBatteryState() {
 
   batteryPercentage = (uint8_t)percentage;
 
-  DEBUG_FUNCTION(lines[1].setText("BAT: " + +String(batteryVoltage) + "V, " + String(percentage) + "%"));
+  DEBUG_FUNCTION(lines[1].setText("BAT: " + String(batteryVoltage) + "V, " + String(percentage) + "%"));
   DEBUG_FUNCTION(scrollAllLines());
 }
 
