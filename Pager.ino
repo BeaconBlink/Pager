@@ -3,6 +3,7 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
+#include <TimeLib.h>
 #include "ScrollingLine.h"
 #include "Settings.h"
 
@@ -38,6 +39,8 @@ ScrollingLine lines[LINES_SIZE] = {
 
 JsonDocument jsonDocument;
 String serializedJsonDocument;
+
+time_t lastPingTime = now();
 
 double batteryVoltage = 4.2;
 uint8_t batteryPercentage = 100;
@@ -138,7 +141,9 @@ int pingServer() {
   DEBUG_FUNCTION(Serial.println(serializedJsonDocument));
 
   int httpResponseCode = http.POST(serializedJsonDocument);
-  if (httpResponseCode > 0) {
+  if (httpResponseCode == 200) {
+    lastPingTime = now();
+
     DEBUG_FUNCTION(Serial.print("HTTP Response "));
     DEBUG_FUNCTION(Serial.print(httpResponseCode));
     DEBUG_FUNCTION(Serial.print(": "));
@@ -245,7 +250,14 @@ void getBatteryState() {
 }
 
 void showStatus() {
-  PROD_FUNCTION(lines[1].setText(String(batteryPercentage) + "%"));
+  time_t timeElapsed = now() - lastPingTime;
+  time_t m = timeElapsed / 60;
+
+  if (m > 0) {
+    lines[1].setText(String(m) + "m ago, " + String(batteryPercentage) + "%");
+  } else {
+    lines[1].setText(String(batteryPercentage) + "%");
+  }
 }
 
 void setup() {

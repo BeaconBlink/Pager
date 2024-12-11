@@ -6,6 +6,7 @@
   (setup as in [documentation](https://www.waveshare.com/wiki/ESP32-S2-Pico#LCD))
 - [ReactESP](https://github.com/mairas/ReactESP) @ 2.1.0
 - [ArduinoJSON](https://github.com/bblanchon/ArduinoJson) @ 7.0.4
+- [Time](https://github.com/PaulStoffregen/Time) @ 1.6.1
 
 ## Settings
 
