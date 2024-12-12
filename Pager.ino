@@ -37,11 +37,7 @@ ScrollingLine lines[LINES_SIZE] = {
   ScrollingLine(&tft, lines[1].getBottomY() + 8, TFT_RED, TFT_BLACK, 4),
 };
 
-JsonDocument jsonDocument;
-String serializedJsonDocument;
-
 time_t lastPingTime = now();
-
 double batteryVoltage = 4.2;
 uint8_t batteryPercentage = 100;
 
@@ -50,6 +46,7 @@ uint8_t batteryPercentage = 100;
 void scrollAllLines();
 void scanNetworks();
 int pingServer();
+void performTask(JsonObject task);
 void onWiFiStationConnected(WiFiEvent_t event, WiFiEventInfo_t info);
 void onWiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info);
 void checkConnectionAndReconnect();
@@ -116,6 +113,9 @@ removeReaction:
 }
 
 int pingServer() {
+  JsonDocument jsonDocument;
+  String serializedJsonDocument;
+
   DEBUG_FUNCTION(Serial.println("pingServer started"));
 
   HTTPClient http;
@@ -151,47 +151,47 @@ int pingServer() {
     DEBUG_FUNCTION(Serial.println(serializedJsonDocument));
     deserializeJson(jsonDocument, serializedJsonDocument);
 
-    // TODO: make a function for this or sth
     JsonArray tasks = jsonDocument["tasks"];
     for (JsonObject task : tasks) {
-      const char* action = task["action"];
-      JsonArray args = task["args"];
-
-      if (strcmp(action, "display") == 0) {
-        const char* text = args[0];
-        const uint8_t line = args[1];
-        const uint16_t textColor = args[2];
-        const uint16_t bgColor = args[3];
-
-        lines[line].setText(String(text));
-        lines[line].setTextColor(textColor);
-        lines[line].setBgColor(bgColor);
-      } else if (strcmp(action, "buzz") == 0) {
-        const uint8_t buzzCount = args[0];
-        const uint16_t buzzLength = args[1];
-
-        for (uint8_t i = 0; i < buzzCount * 2; ++i) {
-          app.onDelay(i * buzzLength + 1000, [i]() {
-            digitalWrite(BUZZER_PIN, i % 2 == 0);
-          });
-        }
-      }
+      performTask(task);
     }
 
     DEBUG_FUNCTION(Serial.println("pingServer finished running actions"));
   } else {
+    lines[0].setTextColor(TFT_YELLOW);
     DEBUG_FUNCTION(Serial.print("Error code: "));
     DEBUG_FUNCTION(Serial.println(httpResponseCode));
   }
   http.end();
 
-  if (httpResponseCode != 200) {
-    lines[0].setTextColor(TFT_YELLOW);
-  }
-
   DEBUG_FUNCTION(lines[1].setText("HTTP: " + String(httpResponseCode)));
   DEBUG_FUNCTION(scrollAllLines());
   return httpResponseCode;
+}
+
+void performTask(JsonObject task) {
+  const char* action = task["action"];
+  JsonArray args = task["args"];
+
+  if (strcmp(action, "display") == 0) {
+    const char* text = args[0];
+    const uint8_t line = args[1];
+    const uint16_t textColor = args[2];
+    const uint16_t bgColor = args[3];
+
+    lines[line].setText(String(text));
+    lines[line].setTextColor(textColor);
+    lines[line].setBgColor(bgColor);
+  } else if (strcmp(action, "buzz") == 0) {
+    const uint8_t buzzCount = args[0];
+    const uint16_t buzzLength = args[1];
+
+    for (uint8_t i = 0; i < buzzCount * 2; ++i) {
+      app.onDelay(i * buzzLength + 1000, [i]() {
+        digitalWrite(BUZZER_PIN, i % 2 == 0);
+      });
+    }
+  }
 }
 
 void onWiFiStationConnected(WiFiEvent_t event, WiFiEventInfo_t info) {
